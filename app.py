@@ -4,7 +4,134 @@ import plotly.express as px
 from datetime import datetime
 
 # Set page config for wide layout
-st.set_page_config(page_title="SuperStore KPI Dashboard", layout="wide")
+st.set_page_config(
+    page_title="SuperStore KPI Dashboard",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
+
+# ---- Custom CSS for Modern UI ----
+st.markdown(
+    """
+    <style>
+    /* Main background and font */
+    body {
+        background-color: #f5f5f5;
+        font-family: 'Arial', sans-serif;
+    }
+
+    /* Header styling */
+    .header {
+        font-size: 36px;
+        font-weight: 700;
+        color: #2c3e50;
+        text-align: center;
+        padding: 20px;
+        background-color: #ffffff;
+        border-bottom: 2px solid #e0e0e0;
+    }
+
+    /* KPI tiles */
+    .kpi-box {
+        background: linear-gradient(135deg, #6a11cb, #2575fc);
+        border-radius: 12px;
+        padding: 20px;
+        margin: 10px;
+        text-align: center;
+        color: white;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .kpi-title {
+        font-weight: 600;
+        font-size: 18px;
+        margin-bottom: 10px;
+    }
+    .kpi-value {
+        font-weight: 700;
+        font-size: 28px;
+    }
+
+    /* Sidebar styling */
+    .sidebar .sidebar-content {
+        background-color: #2c3e50;
+        color: white;
+    }
+    .sidebar .stSelectbox, .sidebar .stDateInput {
+        background-color: #34495e;
+        color: white;
+        border-radius: 8px;
+        padding: 8px;
+    }
+
+    /* Button styling */
+    .stButton button {
+        background-color: #2575fc;
+        color: white;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-size: 16px;
+        border: none;
+        transition: background-color 0.3s ease;
+    }
+    .stButton button:hover {
+        background-color: #1a5bbf;
+    }
+
+    /* Chart styling */
+    .stPlotlyChart {
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Dark mode toggle */
+    .dark-mode .kpi-box {
+        background: linear-gradient(135deg, #34495e, #2c3e50);
+    }
+    .dark-mode .header {
+        background-color: #2c3e50;
+        color: white;
+    }
+    .dark-mode body {
+        background-color: #1a1a1a;
+        color: white;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+# ---- Dark Mode Toggle ----
+dark_mode = st.sidebar.checkbox("Dark Mode")
+
+if dark_mode:
+    st.markdown(
+        """
+        <style>
+        body {
+            background-color: #1a1a1a;
+            color: white;
+        }
+        .kpi-box {
+            background: linear-gradient(135deg, #34495e, #2c3e50);
+        }
+        .header {
+            background-color: #2c3e50;
+            color: white;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+# ---- Header ----
+st.markdown(
+    """
+    <div class="header">
+        SuperStore KPI Dashboard
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
 # ---- Load Data ----
 @st.cache_data
@@ -74,37 +201,6 @@ if from_date > to_date:
 
 df = df[(df["Order Date"] >= pd.to_datetime(from_date)) & (df["Order Date"] <= pd.to_datetime(to_date))]
 
-# ---- Page Title ----
-st.title("SuperStore KPI Dashboard")
-
-# ---- Custom CSS for KPI Tiles ----
-st.markdown(
-    """
-    <style>
-    .kpi-box {
-        background-color: #FFFFFF;
-        border: 2px solid #EAEAEA;
-        border-radius: 8px;
-        padding: 16px;
-        margin: 8px;
-        text-align: center;
-    }
-    .kpi-title {
-        font-weight: 600;
-        color: #333333;
-        font-size: 16px;
-        margin-bottom: 8px;
-    }
-    .kpi-value {
-        font-weight: 700;
-        font-size: 24px;
-        color: #1E90FF;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-
 # ---- KPI Calculation ----
 if df.empty:
     total_sales = 0
@@ -127,7 +223,7 @@ with kpi_col1:
             <div class='kpi-value'>${total_sales:,.2f}</div>
         </div>
         """,
-        unsafe_allow_html=True
+        unsafe_allow_html=True,
     )
 with kpi_col2:
     st.markdown(
@@ -137,7 +233,7 @@ with kpi_col2:
             <div class='kpi-value'>{total_quantity:,.0f}</div>
         </div>
         """,
-        unsafe_allow_html=True
+        unsafe_allow_html=True,
     )
 with kpi_col3:
     st.markdown(
@@ -147,7 +243,7 @@ with kpi_col3:
             <div class='kpi-value'>${total_profit:,.2f}</div>
         </div>
         """,
-        unsafe_allow_html=True
+        unsafe_allow_html=True,
     )
 with kpi_col4:
     st.markdown(
@@ -157,7 +253,7 @@ with kpi_col4:
             <div class='kpi-value'>{(margin_rate * 100):,.2f}%</div>
         </div>
         """,
-        unsafe_allow_html=True
+        unsafe_allow_html=True,
     )
 
 # ---- Data Export ----
