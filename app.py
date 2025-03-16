@@ -9,9 +9,7 @@ st.set_page_config(page_title="SuperStore KPI Dashboard", layout="wide")
 # ---- Load Data ----
 @st.cache_data
 def load_data():
-    # Adjust the path if needed, e.g. "data/Sample - Superstore.xlsx"
     df = pd.read_excel("Sample - Superstore.xlsx", engine="openpyxl")
-    # Convert Order Date to datetime if not already
     if not pd.api.types.is_datetime64_any_dtype(df["Order Date"]):
         df["Order Date"] = pd.to_datetime(df["Order Date"])
     return df
@@ -62,29 +60,19 @@ if selected_subcat != "All":
 
 # ---- Sidebar Date Range (From and To) ----
 if df.empty:
-    # If there's no data after filters, default to overall min/max
     min_date = df_original["Order Date"].min()
     max_date = df_original["Order Date"].max()
 else:
     min_date = df["Order Date"].min()
     max_date = df["Order Date"].max()
 
-from_date = st.sidebar.date_input(
-    "From Date", value=min_date, min_value=min_date, max_value=max_date
-)
-to_date = st.sidebar.date_input(
-    "To Date", value=max_date, min_value=min_date, max_value=max_date
-)
+from_date = st.sidebar.date_input("From Date", value=min_date, min_value=min_date, max_value=max_date)
+to_date = st.sidebar.date_input("To Date", value=max_date, min_value=min_date, max_value=max_date)
 
-# Ensure from_date <= to_date
 if from_date > to_date:
     st.sidebar.error("From Date must be earlier than To Date.")
 
-# Apply date range filter
-df = df[
-    (df["Order Date"] >= pd.to_datetime(from_date))
-    & (df["Order Date"] <= pd.to_datetime(to_date))
-]
+df = df[(df["Order Date"] >= pd.to_datetime(from_date)) & (df["Order Date"] <= pd.to_datetime(to_date))]
 
 # ---- Page Title ----
 st.title("SuperStore KPI Dashboard")
@@ -172,27 +160,33 @@ with kpi_col4:
         unsafe_allow_html=True
     )
 
+# ---- Data Export ----
+if st.button("Export Filtered Data as CSV"):
+    csv = df.to_csv(index=False)
+    st.download_button(
+        label="Download CSV",
+        data=csv,
+        file_name="filtered_data.csv",
+        mime="text/csv",
+    )
+
 # ---- KPI Selection (Affects Both Charts) ----
 st.subheader("Visualize KPI Across Time & Top Products")
 
 if df.empty:
-    st.warning("No data available for the selected filters and date range.")
+    st.warning("No data available for the selected filters and date range. Please adjust your filters.")
 else:
-    # Radio button above both charts
     kpi_options = ["Sales", "Quantity", "Profit", "Margin Rate"]
     selected_kpi = st.radio("Select KPI to display:", options=kpi_options, horizontal=True)
 
     # ---- Prepare Data for Charts ----
-    # Daily grouping for line chart
     daily_grouped = df.groupby("Order Date").agg({
         "Sales": "sum",
         "Quantity": "sum",
         "Profit": "sum"
     }).reset_index()
-    # Avoid division by zero
     daily_grouped["Margin Rate"] = daily_grouped["Profit"] / daily_grouped["Sales"].replace(0, 1)
 
-    # Product grouping for top 10 chart
     product_grouped = df.groupby("Product Name").agg({
         "Sales": "sum",
         "Quantity": "sum",
@@ -200,7 +194,6 @@ else:
     }).reset_index()
     product_grouped["Margin Rate"] = product_grouped["Profit"] / product_grouped["Sales"].replace(0, 1)
 
-    # Sort for top 10 by selected KPI
     product_grouped.sort_values(by=selected_kpi, ascending=False, inplace=True)
     top_10 = product_grouped.head(10)
 
@@ -208,7 +201,6 @@ else:
     col_left, col_right = st.columns(2)
 
     with col_left:
-        # Line Chart
         fig_line = px.line(
             daily_grouped,
             x="Order Date",
@@ -221,7 +213,6 @@ else:
         st.plotly_chart(fig_line, use_container_width=True)
 
     with col_right:
-        # Horizontal Bar Chart
         fig_bar = px.bar(
             top_10,
             x=selected_kpi,
@@ -238,3 +229,30 @@ else:
             yaxis={"categoryorder": "total ascending"}
         )
         st.plotly_chart(fig_bar, use_container_width=True)
+
+# ---- Contextual Insights ----
+st.subheader("Contextual Insights")
+if not df.empty:
+    previous_period_sales = df_original[
+        (df_original["Order Date"] >= pd.to_datetime(from_date) - pd.Timedelta(days=30)) &
+        (df_original["Order Date"] < pd.to_datetime(from_date))
+    ]["Sales"].sum()
+    sales_change = ((total_sales - previous_period_sales) / previous_period_sales) * 100 if previous_period_sales != 0 else 0
+    st.metric("Sales Change vs Previous 30 Days", f"{sales_change:.2f}%")
+
+# ---- Additional Enhancements ----
+# 1. Add a benchmark comparison
+benchmark_sales = df_original["Sales"].mean()
+st.metric("Benchmark Sales", f"${benchmark_sales:,.2f}")
+
+# 2. Add a heatmap for sales by category and sub-category
+heatmap_data = df.groupby(["Category", "Sub-Category"]).agg({"Sales": "sum"}).reset_index()
+fig_heatmap = px.density_heatmap(
+    heatmap_data,
+    x="Category",
+    y="Sub-Category",
+    z="Sales",
+    title="Sales Heatmap by Category and Sub-Category",
+    template="plotly_white",
+)
+st.plotly_chart(fig_heatmap, use_container_width=True)
